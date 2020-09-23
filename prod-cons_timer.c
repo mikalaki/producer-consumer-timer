@@ -129,7 +129,7 @@ int main (int argc, char* argv[])
   P=atoi(argv[1]);
   Q=atoi(argv[2]);
 
-  printExecutionMenu();
+
 
 
   //Getting results in files
