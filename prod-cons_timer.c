@@ -68,6 +68,7 @@ typedef struct {
   unsigned int Period; //Period given in milliseconds
   unsigned int TasksToExecute;
   unsigned int StartDelay;
+  pthread_t producer_tid;
 
   struct workFunction * TimerFcn;
 
@@ -90,6 +91,11 @@ void * def_StopFcn(void * arg);
 void * def_ErrorFcn(void * arg);
 
 void start(Timer * t);
+
+
+
+//Function that prints the execution alternatives menu
+int printExecutionMenu();
 
 //Initialization of the workFunctions' fuctions array
 void * (* functions[N_OF_FUNCTIONS])(void *)= {&calc5thPower,&calcCos ,&calcSin,&calcCosSumSin,&calcSqRoot};
@@ -123,15 +129,49 @@ int terminationStatus;
 
 int main (int argc, char* argv[])
 {
-
-
+  int user_choice;
+  int nOftimers=0;
+  int timerIndex=0;
 
   P=atoi(argv[1]);
   Q=atoi(argv[2]);
+  printf("TIMER PROGRAMM HAS STARTED!!\n");
+  user_choice=printExecutionMenu();
+  //Check if user provides an number that doesn't corresponds to a selection.
+  while(user_choice!= 1 && user_choice!= 2 && user_choice!= 3 && user_choice!= 4){
+    printf("Please enter one valid option.\n" );
+    user_choice=printExecutionMenu();
+  }
 
+switch (user_choice) {
+  case 1:
+    nOftimers=1;
+    P=nOftimers;
+    timerIndex=0;
+    break;
 
+  case 2:
+    nOftimers=1;
+    P=nOftimers;
+    timerIndex=1;
+    break;
 
+  case 3:
+    nOftimers=1;
+    P=nOftimers;
+    timerIndex=2;
+    break;
 
+  case 4:
+    nOftimers=3;
+    P=nOftimers;
+    timerIndex=0;
+    break;
+
+  default:
+    break;
+
+}
   //Getting results in files
   //declaring files' pointers
   FILE  *dataFileMean, *dataFileMax , *dataFileMin , *textFile;
@@ -161,6 +201,7 @@ int main (int argc, char* argv[])
 
   queue *fifo; //queue declaration
   pthread_t producers[P], consumers[Q];//threads declaration
+  Timer * timers[nOftimers];
 
   //Initializing to zero the two global variables for the mean waiting-time calculations .
   functionsCounter=0;
@@ -187,9 +228,11 @@ int main (int argc, char* argv[])
     pthread_create (&consumers[i], NULL, consumer, fifo);
 
 ///////////////////initializing the timer
-  unsigned int t1_period=1;//periods are in milliseconds
-  unsigned int t1_TasksToExecute=200;
-  unsigned int t1_StartDelay=0;
+
+
+  unsigned int t_periods[3]={1e3,1e2,10};//periods are in milliseconds
+  unsigned int t_TasksToExecute[3]={2,20,200};
+  unsigned int t_StartDelay=0;
   int argIndex, funcIndex;
 
   // unsigned int t_periods[P]={1e3,1e2,10};//periods are in milliseconds
@@ -197,22 +240,28 @@ int main (int argc, char* argv[])
   // unsigned int t1_StartDelay=0;
   // int argIndex, funcIndex;
 
+  for(int i=0; i<nOftimers; i++){
+    //getting the workFuctions' function and argument randomly.
+    argIndex=1;
+    funcIndex=1+i;
+    // Declaring the workFuction that is going to be added in the queue.
+    struct workFunction t_TimerFcn;
+    t_TimerFcn.work = functions[funcIndex];
+    t_TimerFcn.arg = (void *) arguments[argIndex];
 
-  //getting the workFuctions' function and argument randomly.
-  argIndex=1;
-  funcIndex=1;
-  // Declaring the workFuction that is going to be added in the queue.
-  struct workFunction t1_TimerFcn;
-  t1_TimerFcn.work = functions[funcIndex];
-  t1_TimerFcn.arg = (void *) arguments[argIndex];
-  Timer * t1= timerInit(t1_period, t1_TasksToExecute, t1_StartDelay, &t1_TimerFcn);
-  (t1 -> Q)= fifo;
-  start(t1);
+    timers[i]= timerInit(t_periods[i+timerIndex], t_TasksToExecute[i+timerIndex], t_StartDelay, &t_TimerFcn);
+    (timers[i] -> Q)= fifo;
+    (timers[i] -> producer_tid)=producers[i];
+    start(timers[i]);
 
+  }
 
-  // delete timer
-  timerDelete(t1);
-
+  for(int i=0; i<nOftimers; i++){
+    pthread_join ((timers[i]-> producer_tid), NULL);
+    (timers[i]-> StopFcn)(NULL);
+    // delete timer
+    timerDelete(timers[i]);
+  }
 
   // //producers threads spawning
   // for (int i = 0; i < P; i++)
@@ -350,6 +399,8 @@ void *producer (void * t)
   */
   }
   terminationStatus++;
+  //The bellow false signing is dor avoid race conditions
+  pthread_cond_signal ((timer-> Q)->notEmpty);
   return (NULL);
 }
 
@@ -376,7 +427,7 @@ void *consumer (void *q)
         //Unlock the mutex before termination in order all the producers threads to terminate.
         pthread_mutex_unlock (fifo->mut);
         pthread_cond_signal (fifo->notEmpty);
-        //printf("All produced functions are executed, producer's function,unlocks and returns. \n");
+        printf("IAM CON: All produced functions are executed, producer's function,unlocks and returns. \n");
         return NULL;
       }
 
@@ -578,10 +629,8 @@ void start(Timer * t){
   }
   (t-> StartFcn)(NULL);
   pthread_t t_producer;
-  pthread_create (&t_producer, NULL, producer, t);
+  pthread_create (&(t->producer_tid) , NULL, producer, t);
 
-  pthread_join (t_producer, NULL);
-  (t-> StopFcn)(NULL);
 }
 
 
@@ -598,4 +647,23 @@ void * def_StopFcn(void * arg){
 
 void * def_ErrorFcn(void * arg){
   printf("The queue is full, no function can be assigned at the moment. \n");
+}
+
+
+int printExecutionMenu(){
+  int choice;
+
+  printf("Select one of the programm execution alternatives bellow:\n");
+  printf("1. For one timer with period of 1 sec type '1' and press Enter.\n" );
+  printf("2. For one timer with period of 0.1 sec type '2' and press Enter.\n" );
+  printf("3. For one timer with period of 0.01 sec type '3' and press Enter.\n" );
+  printf("4. For running and the three above timers simultaneously type '4' and press Enter.\n" );
+
+  //Check if someone inputs an invalid data type as scanf input.
+  if(scanf("%d", &choice)!= 1) {
+    scanf("%*s");
+    printf("Please enter one valid option. \n" );
+    choice=printExecutionMenu();
+  };
+  return choice;
 }
