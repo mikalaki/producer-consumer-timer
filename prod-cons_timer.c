@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
+#include <time.h>
 #include "myFunctions.h"
 
 #define QUEUESIZE 1000
@@ -91,7 +92,7 @@ void * def_StopFcn(void * arg);
 void * def_ErrorFcn(void * arg);
 
 void start(Timer * t);
-
+void startat(Timer * t,int y,int m,int d,int h,int min,int sec);
 
 
 //Function that prints the execution alternatives menu
@@ -177,20 +178,18 @@ switch (user_choice) {
   FILE  *dataFileMean, *dataFileMax , *dataFileMin , *textFile;
 
 
-  char filename1[sizeof "InQueueWaitingTimesPXXX_QXXX.csv"];
-
+  char filename1[sizeof "InQueueWaitingTimesPXXX_QXXX_caseX.csv"];
   //Giving to the file the proper name
-  sprintf(filename1, "InQueueWaitingTimesP%03d_Q%03d.csv", P,Q);
+  sprintf(filename1, "InQueueWaitingTimesP%03d_Q%03d_case%d.csv", P,Q,user_choice);
 
-  char filename2[sizeof "producerAssignDelaysPXXX_QXXX.csv"];
 
+  char filename2[sizeof "producerAssignDelaysPXXX_QXXX_caseX.csv"];
   //Giving to the file the proper name
-  sprintf(filename2, "producerAssignDelaysP%03d_Q%03d.csv", P,Q);
+  sprintf(filename2, "producerAssignDelaysP%03d_Q%03d_case%d.csv", P,Q,user_choice);
 
-  char filename3[sizeof "actualPeriodsPXXX_QXXX.csv"];
-
+  char filename3[sizeof "actualPeriodsPXXX_QXXX_caseX.csv"];
   //Giving to the file the proper name
-  sprintf(filename3, "actualPeriodsP%03d_Q%03d.csv", P,Q);
+  sprintf(filename3, "actualPeriodsP%03d_Q%03d_case%d.csv", P,Q,user_choice);
 
 
   //Open the file where all the function waiting times of the current execution are stored
@@ -231,7 +230,7 @@ switch (user_choice) {
 
 
   unsigned int t_periods[3]={1e3,1e2,10};//periods are in milliseconds
-  unsigned int t_TasksToExecute[3]={2,20,200};
+  unsigned int t_TasksToExecute[3]={2,4, 10};
   unsigned int t_StartDelay=0;
   int argIndex, funcIndex;
 
@@ -252,7 +251,7 @@ switch (user_choice) {
     timers[i]= timerInit(t_periods[i+timerIndex], t_TasksToExecute[i+timerIndex], t_StartDelay, &t_TimerFcn);
     (timers[i] -> Q)= fifo;
     (timers[i] -> producer_tid)=producers[i];
-    start(timers[i]);
+    startat(timers[i],2020,9,24,23,11,0);
 
   }
 
@@ -329,7 +328,21 @@ void *producer (void * t)
   unsigned int executions= (timer -> TasksToExecute);
   unsigned int initialPeriod=(timer->Period)*1e3;
   int fixedPeriod= initialPeriod; // Period is in milliseconds
-                                           // initialPeriod and fixedPeriod is in microseconds
+                                  // initialPeriod and fixedPeriod is in microseconds
+  // Sleep untill the wanted time moment (d/m/y h:min:sec)
+  if(timer->StartDelay){
+    // struct timeval tv;
+    // time_t nowtime;
+    // struct tm *nowtm;
+    sleep(timer->StartDelay);
+    // gettimeofday(&tv, NULL);
+    // nowtime = tv.tv_sec;
+    // nowtm = localtime(&nowtime);
+    //printf("The time now is : %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
+    printf("A timer is starting now as scheduled, with the respect to its startDelay!\n");
+    (timer-> StartFcn)(NULL);
+  }
+
   //producers' loop
   while (executions)
   {
@@ -631,6 +644,53 @@ void start(Timer * t){
   pthread_t t_producer;
   pthread_create (&(t->producer_tid) , NULL, producer, t);
 
+}
+
+void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
+
+  if(DEBUG){
+    printf("I am inside startat(t,) , bellow the function:\n");
+    (t->TimerFcn->work)((t->TimerFcn->arg));
+    printf("DEBUG inside start() ends.\n");
+  }
+
+  int yearDifferenceInSecs;
+  int monthsDifferenceInSecs;
+  int daysDifferenceInSecs;
+  int hoursDifferenceInSecs;
+  int minutesDifferenceInSecs;
+  int secondsDifference;
+
+  struct timeval tv;
+  time_t nowtime;
+  struct tm *nowtm;
+  // char tmbuf[64], buf[64];
+
+ gettimeofday(&tv, NULL);
+ nowtime = tv.tv_sec;
+ nowtm = localtime(&nowtime);
+
+ printf("The time now is: %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
+ printf("A timer is set to execute at: %d-%02d-%02d %02d:%02d:%02d\n", y, m, d, h, min, sec);
+
+ //Calculating the difference between two time moments (now and d/m/y h:min:sec) into seconds, in order to call the sleep() function later
+ yearDifferenceInSecs = (y- (nowtm->tm_year+ 1900)) * 31556926 ;// There are 31556926 seconds in a year
+ monthsDifferenceInSecs = (m- (nowtm->tm_mon+1)) * 2592000 ;// There are 2592000 seconds in a 30-day month
+ daysDifferenceInSecs = (d- nowtm->tm_mday) * 86400    ;// There are 86400 seconds in a day
+ hoursDifferenceInSecs= (h- nowtm->tm_hour) * 3600     ;// There are 3600 seconds in an hour
+ minutesDifferenceInSecs= (min- nowtm->tm_min) * 60    ;// There are 60 seconds in an minute
+ secondsDifference= (sec- nowtm->tm_sec);
+
+ //The total time difference between the two time moments in seconds
+ int totalDifferenceInSecs= yearDifferenceInSecs+ monthsDifferenceInSecs+daysDifferenceInSecs+hoursDifferenceInSecs+
+ minutesDifferenceInSecs+secondsDifference;
+
+
+
+ t-> StartDelay = totalDifferenceInSecs; //startDelay is in seconds
+ pthread_t t_producer;
+ pthread_create (&(t->producer_tid) , NULL, producer, t);
+ printf("i created the prod trhead!\n");
 }
 
 
