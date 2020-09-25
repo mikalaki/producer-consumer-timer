@@ -252,7 +252,7 @@ int main (int argc, char* argv[])
 
   //Setting the timer parameters
   unsigned int t_periods[3]={1e3,1e2,10};//timer periods are in milliseconds
-  unsigned int t_TasksToExecute[3]={60,600,6000};
+  unsigned int t_TasksToExecute[3]={10,10,10};
   unsigned int t_StartDelay=0;// default initial timer's dellay is zero
   int argIndex, funcIndex; //variables that indicate the function and the argument
 
@@ -272,11 +272,11 @@ int main (int argc, char* argv[])
     (timers[i] -> Q)= fifo;
     (timers[i] -> producer_tid)=producers[i];
 
-    //beggining the timer timers[i]
-    start(timers[i]);
+    // //beggining the timer timers[i]
+    // start(timers[i]);
 
-    // //beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
-    // startat(timers[i],2020,9,25,18,26,0);
+    //beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
+    startat(timers[i],2020,9,25,21,10,0);
   }
 
   //With this loop, we are joining the timers' prod threads and we delete the timer objects, when they are not needed.
@@ -649,15 +649,17 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
 
   //Initializing a struct tm with the timestamp, at which the timer will be executed.
   struct tm * timerExecStart = (struct tm *)malloc(sizeof(struct tm));
-  timerExecStart->tm_year = y;
-  timerExecStart->tm_mon = m;
+  timerExecStart->tm_year = y -1900;
+  timerExecStart->tm_mon = m -1;
   timerExecStart->tm_mday = d;
   timerExecStart->tm_hour = h;
   timerExecStart->tm_min = min;
   timerExecStart->tm_sec = sec;
 
   //Getting the time difference in seconds between the current moment and the moment the timer we want to start.
-  totalDelayInSeconds=(int) difftime(mktime(nowtm), mktime(timerExecStart));
+  totalDelayInSeconds=(int) difftime( mktime(timerExecStart),mktime(nowtm));
+
+  printf("inside startat() ,totalDelayInSeconds: %d \n",totalDelayInSeconds);
 
   //Initialize the timer's initial dellay (StartDelay variable) to the proper value.
   if(totalDelayInSeconds>0)
