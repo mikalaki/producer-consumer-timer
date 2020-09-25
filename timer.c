@@ -1,5 +1,5 @@
 /*
- *	File	: prod-cons_timer.c
+ *	File	: timer.c
  *
  *	Description	: Create a C timer using a multithreading producer consumers solution,
  *  we developed in the previous class assignment.
@@ -19,16 +19,16 @@
 #include "myFunctions.h"
 
 
-#define DEBUG 1
+#define DEBUG 0
 // #define N_OF_FUNCTIONS 5
 #define N_OF_ARGS 10
 // #define P 4
 // #define Q 4
 // #define QUEUESIZE 1000
 
-int P=1; // number of producer Threads, set it by default to 1, value will be updated in the programm
-int Q=1; // number of consumer Threads, set it by default to 1, value will be updated in the programm
-int QUEUESIZE=10; //work Functions queue capacity, set it by default to 10, value will be updated in the programm
+int P=1; // number of producer Threads, set it by default to 1, value will be updated in the program
+int Q=1; // number of consumer Threads, set it by default to 1, value will be updated in the program
+int QUEUESIZE=10; //work Functions queue capacity, set it by default to 10, value will be updated in the program
 
 
 //pointers to auxilary files, for storing wanted data.
@@ -145,10 +145,11 @@ int main (int argc, char* argv[])
   QUEUESIZE=atoi(argv[1]);
   Q=atoi(argv[2]);
 
-  printf("TIMER PROGRAMM HAS STARTED!!\n");
+  //printf("TIMER PROGRAM HAS STARTED!!\n");
 
   //Print the menu with the 4 program execution alternatives available
   user_choice=printExecutionMenu();
+  // user_choice=4;
 
   //Check if user provides an number that doesn't corresponds to a execution selection.
   while(user_choice!= 1 && user_choice!= 2 && user_choice!= 3 && user_choice!= 4){
@@ -252,7 +253,7 @@ int main (int argc, char* argv[])
 
   //Setting the timer parameters
   unsigned int t_periods[3]={1e3,1e2,10};//timer periods are in milliseconds
-  unsigned int t_TasksToExecute[3]={10,10,10};
+  unsigned int t_TasksToExecute[3]={12,1200,12000};
   unsigned int t_StartDelay=0;// default initial timer's dellay is zero
   int argIndex, funcIndex; //variables that indicate the function and the argument
 
@@ -272,11 +273,11 @@ int main (int argc, char* argv[])
     (timers[i] -> Q)= fifo;
     (timers[i] -> producer_tid)=producers[i];
 
-    // //beggining the timer timers[i]
+    // // //beggining the timer timers[i]
     // start(timers[i]);
 
-    //beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
-    startat(timers[i],2020,9,25,21,10,0);
+    // beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
+    startat(timers[i],2020,9,25,22,50,0);
   }
 
   //With this loop, we are joining the timers' prod threads and we delete the timer objects, when they are not needed.
@@ -295,13 +296,13 @@ int main (int argc, char* argv[])
   //queue deletion
   queueDelete (fifo);
 
-  printf("\nPROGRAMM EXECUTION FINISHED. \n");
+  printf("\nPROGRAM EXECUTION FINISHED. \n");
 
 
   printf("For P=%d, and Q=%d ,QUEUESIZE=%d the mean waiting-time is : %lf usec \n \n",P,Q,QUEUESIZE,meanWaitingTime);
 
 
-  //open the files that store mean waiting time and the file when we get the programms output.
+  //open the files that store mean waiting time and the file when we get the programs output.
   dataFileMean=fopen("dataΜΕΑΝ.csv","a");
   textFile=fopen("consolePrints.txt","a");
 
@@ -432,7 +433,6 @@ void *consumer (void *q)
         //Unlock the mutex before termination in order all the producers threads to terminate.
         pthread_mutex_unlock (fifo->mut);
         pthread_cond_signal (fifo->notEmpty);
-        printf("IAM CON: All produced functions are executed, producer's function,unlocks and returns. \n");
         return NULL;
       }
 
@@ -491,6 +491,7 @@ void queueDelete (queue *q)
   free (q->notFull);
   pthread_cond_destroy (q->notEmpty);
   free (q->notEmpty);
+  free (q->buf);
   free (q);
 }
 
@@ -623,8 +624,11 @@ void timerDelete(Timer * t){
 
 void start(Timer * t){
 
+  //executing the StartFcn function
   (t-> StartFcn)(NULL);
   pthread_t t_producer;
+
+  //Spawining the producer threead corresponding to timer
   pthread_create (&(t->producer_tid) , NULL, producer, t);
 
 }
@@ -643,12 +647,19 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
   nowtime = tv.tv_sec;
   nowtm = localtime(&nowtime);
 
+  // //executing the StartFcn function
+  // (t-> StartFcn)(NULL);
+
   //Print informational message about the timer beggining in a certain time and date.
   printf("The time now is: %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
   printf("A timer is set to execute at: %d-%02d-%02d %02d:%02d:%02d\n", y, m, d, h, min, sec);
 
   //Initializing a struct tm with the timestamp, at which the timer will be executed.
   struct tm * timerExecStart = (struct tm *)malloc(sizeof(struct tm));
+  if(!timerExecStart){
+    printf("Failed to allocate memory!\n");
+    exit(1);
+  }
   timerExecStart->tm_year = y -1900;
   timerExecStart->tm_mon = m -1;
   timerExecStart->tm_mday = d;
@@ -659,8 +670,6 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
   //Getting the time difference in seconds between the current moment and the moment the timer we want to start.
   totalDelayInSeconds=(int) difftime( mktime(timerExecStart),mktime(nowtm));
 
-  printf("inside startat() ,totalDelayInSeconds: %d \n",totalDelayInSeconds);
-
   //Initialize the timer's initial dellay (StartDelay variable) to the proper value.
   if(totalDelayInSeconds>0)
     t-> StartDelay = totalDelayInSeconds; //startDelay is in seconds
@@ -669,6 +678,9 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
 
   //Spawining the producer threead corresponding to timer
   pthread_create (&(t->producer_tid) , NULL, producer, t);
+
+  //free some memory from the heap.
+  free(timerExecStart);
   if(DEBUG)printf("i created the prod trhead!\n");
 }
 
@@ -703,7 +715,7 @@ void * def_ErrorFcn(void * arg){
 int printExecutionMenu(){
   int choice;
 
-  printf("Select one of the programm execution alternatives bellow:\n");
+  printf("Select one of the program execution alternatives bellow:\n");
   printf("1. For one timer with period of 1 sec type '1' and press Enter.\n" );
   printf("2. For one timer with period of 0.1 sec type '2' and press Enter.\n" );
   printf("3. For one timer with period of 0.01 sec type '3' and press Enter.\n" );
