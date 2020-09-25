@@ -19,7 +19,7 @@
 #include "myFunctions.h"
 
 
-#define DEBUG 0
+// #define DEBUG 0
 // #define N_OF_FUNCTIONS 5
 #define N_OF_ARGS 10
 // #define P 4
@@ -274,10 +274,10 @@ int main (int argc, char* argv[])
     (timers[i] -> producer_tid)=producers[i];
 
     // // //beggining the timer timers[i]
-    // start(timers[i]);
+    start(timers[i]);
 
     // beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
-    startat(timers[i],2020,9,25,22,50,0);
+    // startat(timers[i],2020,9,25,22,52,0);
   }
 
   //With this loop, we are joining the timers' prod threads and we delete the timer objects, when they are not needed.
@@ -360,8 +360,8 @@ void *producer (void * t)
   while (executions)
   {
     pthread_mutex_lock ((timer-> Q)->mut);
-    if(DEBUG)
-      printf("I am in producer.\n");
+    // if(DEBUG)
+    //   printf("I am in producer.\n");
 
     while ((timer-> Q)->full) {
       //printf ("producer: queue FULL.\n");
@@ -389,8 +389,8 @@ void *producer (void * t)
       currentPeriodDeclination= actualPeriod- initialPeriod;
 
       fixedPeriod= (fixedPeriod - currentPeriodDeclination)> 0 ?fixedPeriod - currentPeriodDeclination :fixedPeriod   ;
-      if(DEBUG)printf("currentPeriodDeclination is : %d\n",currentPeriodDeclination);
-      if(DEBUG)printf("fixedPeriod is : %d\n",fixedPeriod);
+      // if(DEBUG)printf("currentPeriodDeclination is : %d\n",currentPeriodDeclination);
+      // if(DEBUG)printf("fixedPeriod is : %d\n",fixedPeriod);
 
       //Print the current Period (assign) dellay and the actual period vallue, to the proper files in seconds
       fprintf(producerAssignDelays,"%f\n ",(float)(currentPeriodDeclination/1e6));
@@ -507,7 +507,7 @@ void queueAdd (queue *q, struct workFunction in)
   clock_gettime(CLOCK_MONOTONIC, &startInQueueWaitTimes2[q->tail]);
 
   q->tail++;
-  if(DEBUG)printf("QUEUSIZE inside queueADD= %d \n ",QUEUESIZE);
+  // if(DEBUG)printf("QUEUSIZE inside queueADD= %d \n ",QUEUESIZE);
   if (q->tail == QUEUESIZE)
     q->tail = 0;
   if (q->tail == q->head)
@@ -561,7 +561,7 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
 
   //Updating Head Value for the next consumer thread,before unlocking the mutex
   q->head++;
-  if(DEBUG)printf("QUEUSIZE inside queueEXEC= %d \n ",QUEUESIZE);
+  // if(DEBUG)printf("QUEUSIZE inside queueEXEC= %d \n ",QUEUESIZE);
   if (q->head == QUEUESIZE)
     q->head = 0;
   if (q->head == q->tail)
@@ -681,7 +681,7 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
 
   //free some memory from the heap.
   free(timerExecStart);
-  if(DEBUG)printf("i created the prod trhead!\n");
+  // if(DEBUG)printf("i created the prod trhead!\n");
 }
 
 
