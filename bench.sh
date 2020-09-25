@@ -3,7 +3,7 @@
 #This bash script is used for compiling and benching the prod-cons_multithreading.c programm
 
 #compiling
-gcc prod-cons_timer.c myFunctions.c -pthread -o program.out -lm -O3
+gcc timer.c myFunctions.c -pthread -o program.out -lm -O3
 
 #benching the program
 for queuesize in 1 2 4  8  10
