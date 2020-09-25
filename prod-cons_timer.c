@@ -1,9 +1,8 @@
 /*
  *	File	: prod-cons_timer.c
  *
- *	Description	: Modify a pthreads based solution to the producer consumer problem using
- *  a timer structure,through which producer threads add function pointers in the common FIFO queue
- *  periodically, and consumers execute the functions added to the queue with the right order.
+ *	Description	: Create a C timer using a multithreading producer consumers solution,
+ *  we developed in the previous class assignment.
  *
  *	Author : Michael Karatzas
  *	Date  :  September 2020
@@ -19,22 +18,27 @@
 #include <time.h>
 #include "myFunctions.h"
 
-#define QUEUESIZE 1000
-#define LOOP 10000
+
 #define DEBUG 1
 // #define N_OF_FUNCTIONS 5
 #define N_OF_ARGS 10
 // #define P 4
 // #define Q 4
-int P; // number of producer Threads
-int Q; // number of consumer Threads
+// #define QUEUESIZE 1000
+
+int P=1; // number of producer Threads, set it by default to 1, value will be updated in the programm
+int Q=1; // number of consumer Threads, set it by default to 1, value will be updated in the programm
+int QUEUESIZE=10; //work Functions queue capacity, set it by default to 10, value will be updated in the programm
 
 
+//pointers to auxilary files, for storing wanted data.
 FILE * inQueueWaitingTimes;
 FILE * producerAssignDelays;
 FILE * actualPeriods;
+//FILE * executionTime;
+FILE * errorFile;
 
-//Given struct for defining the workFuction our thread will execute.
+//Given struct for defining the workFuction our consumer threads will execute.
 struct workFunction {
   void * (*work)(void *);
   void * arg;
@@ -42,14 +46,14 @@ struct workFunction {
 
 
 
-//Consumer and Producers Threads functions declaration.
+//Consumer and Producers Threads' functions declaration.
 void *producer (void *args);
 void *consumer (void *args);
 
 
 //Struct defined for the queue implementation
 typedef struct {
-  struct workFunction buf[QUEUESIZE];
+  struct workFunction * buf;
   long head, tail;
   int full, empty;
   pthread_mutex_t *mut;
@@ -57,7 +61,7 @@ typedef struct {
 } queue;
 
 //queue methods (functions) declaration
-queue *queueInit (void);
+queue *queueInit (int capacity);
 void queueDelete (queue *q);
 
 void queueAdd (queue *q, struct workFunction in);
@@ -67,11 +71,11 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead);
 //Struct defined for the timer implementation, based on given specification.
 typedef struct {
   unsigned int Period; //Period given in milliseconds
-  unsigned int TasksToExecute;
-  unsigned int StartDelay;
-  pthread_t producer_tid;
+  unsigned int TasksToExecute; //How many times the workFunc will by executed by times
+  unsigned int StartDelay;// StartDellay is in seconds, the initial dellay of workFunc execution
+  pthread_t producer_tid; // the producer thread id correspoding to timer
 
-  struct workFunction * TimerFcn;
+  struct workFunction * TimerFcn;// TimerFcn
 
   void * (* StartFcn)(void *);
   void * (* StopFcn)(void *);
@@ -82,7 +86,7 @@ typedef struct {
   queue *Q;
 } Timer;
 
-//timer methods (functions) declarations
+//timer methods (functions) declarations, based on given specification
 Timer * timerInit (unsigned int t_Period,unsigned int t_TasksToExecute,
   unsigned int t_StartDelay,struct workFunction * t_TimerFcn);
 void timerDelete(Timer * t);
@@ -98,104 +102,122 @@ void startat(Timer * t,int y,int m,int d,int h,int min,int sec);
 //Function that prints the execution alternatives menu
 int printExecutionMenu();
 
-//Initialization of the workFunctions' fuctions array
+//Initialization of the workFunctions' fuctions array (from previous assignment)
 void * (* functions[N_OF_FUNCTIONS])(void *)= {&calc5thPower,&calcCos ,&calcSin,&calcCosSumSin,&calcSqRoot};
 
-//Initialization of the workFunctions' arguments array
+//Initialization of the workFunctions' arguments array (from previous assignment)
 int arguments[N_OF_ARGS]={ 0    , 10   , 25   , 30 ,45  ,
                     60   , 75   , 90   ,100 ,120 };
 
 
-/*The startInQueueWaitTimes array, has the same size with the queue.It help us calculate the
+/*The startInQueueWaitTimes array, will be allocated to have the same length with the queue.It help us calculate the
 waiting time of a workFunction in the queue.When a new item is stored in a queue position (index),
- the time is stored in the same position in the startInQueueWaitTimesArray */
-struct timeval startInQueueWaitTimes[QUEUESIZE] ;
+the time is stored in the same position(index) in the startInQueueWaitTimesArray */
+struct timeval * startInQueueWaitTimes ;
 
-/*we get also time in nanoconds for bigger precision(nanosecond precision) where the execution time is
+/*we get also time in nanoseconds for bigger precision(nanosecond precision) where the waiting time is
 small (for instance 0.8 usec). Generaly we store the measurements from gettimeofday as we are asked,
 but when waiting time is less than 5 microseconds we store the measurement fron clock_gettime
-convereted in microseconds (usec)*/
-struct timespec startInQueueWaitTimes2[QUEUESIZE] ; //getting time is nanoseconds
+convereted in microseconds (usec), this is achieved by the bellow variable.*/
+struct timespec * startInQueueWaitTimes2 ;
 
 //variable that holds the number of total fuctions' executions by the consumers
 long functionsCounter ;
 
 //variable that hold the mean waiting-time of a function in the queue
 double meanWaitingTime;
-// long minWaitingTime; // these are computed in matlab
-// long maxWaitingTime;
+
+//initializing the TotalDrift variables , of all executions to 0
+int TotalDrift=0;
 
 //variable that helps get the termination condition
 int terminationStatus;
 
 int main (int argc, char* argv[])
 {
+  //varable that indicates the execution alternative,user chose
   int user_choice;
+  //initialiazing variables to 0.
   int nOftimers=0;
   int timerIndex=0;
 
-  P=atoi(argv[1]);
+  //getting queue capacity and number of consumer threads as command arguments
+  QUEUESIZE=atoi(argv[1]);
   Q=atoi(argv[2]);
+
   printf("TIMER PROGRAMM HAS STARTED!!\n");
+
+  //Print the menu with the 4 program execution alternatives available
   user_choice=printExecutionMenu();
-  //Check if user provides an number that doesn't corresponds to a selection.
+
+  //Check if user provides an number that doesn't corresponds to a execution selection.
   while(user_choice!= 1 && user_choice!= 2 && user_choice!= 3 && user_choice!= 4){
     printf("Please enter one valid option.\n" );
     user_choice=printExecutionMenu();
   }
 
-switch (user_choice) {
-  case 1:
-    nOftimers=1;
-    P=nOftimers;
-    timerIndex=0;
-    break;
+  //Set the program variables in respect to the user choice
+  switch (user_choice) {
+    case 1:
+      nOftimers=1;
+      P=nOftimers;
+      timerIndex=0;
+      break;
 
-  case 2:
-    nOftimers=1;
-    P=nOftimers;
-    timerIndex=1;
-    break;
+    case 2:
+      nOftimers=1;
+      P=nOftimers;
+      timerIndex=1;
+      break;
 
-  case 3:
-    nOftimers=1;
-    P=nOftimers;
-    timerIndex=2;
-    break;
+    case 3:
+      nOftimers=1;
+      P=nOftimers;
+      timerIndex=2;
+      break;
 
-  case 4:
-    nOftimers=3;
-    P=nOftimers;
-    timerIndex=0;
-    break;
+    case 4:
+      nOftimers=3;
+      P=nOftimers;
+      timerIndex=0;
+      break;
 
-  default:
-    break;
+    default:
+      break;
 
-}
-  //Getting results in files
+  }
+
+
   //declaring files' pointers
-  FILE  *dataFileMean, *dataFileMax , *dataFileMin , *textFile;
+  FILE  *dataFileMean, *textFile;
 
 
-  char filename1[sizeof "InQueueWaitingTimesPXXX_QXXX_caseX.csv"];
+  //In this file we save every waiting-time of a function inside the queue
+  char filename1[sizeof "InQueueWaitingTimesQUEUESIZEXX_QXXX_caseX.csv"];
+  //Giving to the csv file the proper name
+  sprintf(filename1, "InQueueWaitingTimesQUEUESIZE%02d_Q%03d_case%d.csv", QUEUESIZE,Q,user_choice);
+
+  //In this file we save every dellay to the desirable Period of the producer.
+  char filename2[sizeof "producerAssignDelaysQUEUESIZEXX_QXXX_caseX.csv"];
+  //Giving to the csv file the proper name
+  sprintf(filename2, "producerAssignDelaysQUEUESIZE%02d_Q%03d_case%d.csv", QUEUESIZE,Q,user_choice);
+
+  //In this file we get the producer's actual Periods between 2 assignments in queue
+  char filename3[sizeof "actualPeriodsQUEUESIZEXX_QXXX_caseX.csv"];
   //Giving to the file the proper name
-  sprintf(filename1, "InQueueWaitingTimesP%03d_Q%03d_case%d.csv", P,Q,user_choice);
+  sprintf(filename3, "actualPeriodsQUEUESIZE%02d_Q%03d_case%d.csv", QUEUESIZE,Q,user_choice);
 
-
-  char filename2[sizeof "producerAssignDelaysPXXX_QXXX_caseX.csv"];
+  //In this file an error message is printed if the queue gets full.
+  char filename4[sizeof "errorFileQUEUESIZEXX_QXXX_caseX.txt"];
   //Giving to the file the proper name
-  sprintf(filename2, "producerAssignDelaysP%03d_Q%03d_case%d.csv", P,Q,user_choice);
-
-  char filename3[sizeof "actualPeriodsPXXX_QXXX_caseX.csv"];
-  //Giving to the file the proper name
-  sprintf(filename3, "actualPeriodsP%03d_Q%03d_case%d.csv", P,Q,user_choice);
+  sprintf(filename4, "errorFileQUEUESIZE%02d_Q%03d.txt", QUEUESIZE,Q,user_choice);
 
 
-  //Open the file where all the function waiting times of the current execution are stored
+  //Open the auxilary files, in order to store the wanted data
   inQueueWaitingTimes = fopen(filename1,"a");
   producerAssignDelays = fopen(filename2,"a");
   actualPeriods = fopen(filename3,"a");
+  errorFile = fopen(filename4,"a");
 
 
   queue *fifo; //queue declaration
@@ -206,19 +228,21 @@ switch (user_choice) {
   functionsCounter=0;
   meanWaitingTime=0;
 
-  // //Initialize max waiting time equal to zero.
-  // maxWaitingTime=0;
-  //
-  // //Initialize min waiting time equal to zero.
-  // minWaitingTime=INFINITY;
-
-
+  //initializing terminationstatus to zero, if it gets equal to P, then it is met.
   terminationStatus=0;
 
-  fifo = queueInit (); //queue initialization
+  fifo = queueInit (QUEUESIZE); //queue initialization
   if (fifo ==  NULL) {
     fprintf (stderr, "main: Queue Init failed.\n");
     exit (1);
+  }
+
+  //Allocating heap space for the arrays that will store the starts of waiting times in queue
+  startInQueueWaitTimes = (struct timeval *) malloc (sizeof(struct timeval)*QUEUESIZE);
+  startInQueueWaitTimes2 = (struct timespec *) malloc (sizeof(struct timespec)*QUEUESIZE);
+  if(  (!startInQueueWaitTimes) || (!startInQueueWaitTimes2)  ){
+    printf("Couldn't Allocate Memory!\n" );
+    exit(1);
   }
 
   /* We first spawn the consumer threads, in order to be able to execute functions
@@ -226,35 +250,36 @@ switch (user_choice) {
   for (int i = 0; i < Q; i++)
     pthread_create (&consumers[i], NULL, consumer, fifo);
 
-///////////////////initializing the timer
+  //Setting the timer parameters
+  unsigned int t_periods[3]={1e3,1e2,10};//timer periods are in milliseconds
+  unsigned int t_TasksToExecute[3]={60,600,6000};
+  unsigned int t_StartDelay=0;// default initial timer's dellay is zero
+  int argIndex, funcIndex; //variables that indicate the function and the argument
 
-
-  unsigned int t_periods[3]={1e3,1e2,10};//periods are in milliseconds
-  unsigned int t_TasksToExecute[3]={2,4, 10};
-  unsigned int t_StartDelay=0;
-  int argIndex, funcIndex;
-
-  // unsigned int t_periods[P]={1e3,1e2,10};//periods are in milliseconds
-  // unsigned int t_TasksToExecute[P];
-  // unsigned int t1_StartDelay=0;
-  // int argIndex, funcIndex;
-
+  //With the loop we achive initialization of all the desired timers.
   for(int i=0; i<nOftimers; i++){
     //getting the workFuctions' function and argument randomly.
-    argIndex=1;
-    funcIndex=1+i;
-    // Declaring the workFuction that is going to be added in the queue.
+    argIndex=1+i;
+    funcIndex=1;
+
+    // Setting the timerFcn function and it arguments.
     struct workFunction t_TimerFcn;
     t_TimerFcn.work = functions[funcIndex];
     t_TimerFcn.arg = (void *) arguments[argIndex];
 
+    //initializeing the timer.
     timers[i]= timerInit(t_periods[i+timerIndex], t_TasksToExecute[i+timerIndex], t_StartDelay, &t_TimerFcn);
     (timers[i] -> Q)= fifo;
     (timers[i] -> producer_tid)=producers[i];
-    startat(timers[i],2020,9,24,23,11,0);
 
+    //beggining the timer timers[i]
+    start(timers[i]);
+
+    // //beggining the timer timers[i] in d/m/y h:min:sec with startat(timers[i],y,m,d,h,min,sec)
+    // startat(timers[i],2020,9,25,18,26,0);
   }
 
+  //With this loop, we are joining the timers' prod threads and we delete the timer objects, when they are not needed.
   for(int i=0; i<nOftimers; i++){
     pthread_join ((timers[i]-> producer_tid), NULL);
     (timers[i]-> StopFcn)(NULL);
@@ -262,16 +287,6 @@ switch (user_choice) {
     timerDelete(timers[i]);
   }
 
-  // //producers threads spawning
-  // for (int i = 0; i < P; i++)
-  //   pthread_create (&producers[i], NULL, producer, fifo);
-  //
-  //
-  //
-  //
-  // //producers' threads joining
-  // for (int i = 0; i < P; i++)
-  //   pthread_join (producers[i], NULL);
 
   //consumers' threads joining
   for (int i = 0; i < Q; i++)
@@ -282,33 +297,31 @@ switch (user_choice) {
 
   printf("\nPROGRAMM EXECUTION FINISHED. \n");
 
-  //printf("For P=%d, and Q=%d ,QUEUESIZE=%d the min waiting-time is : %ld nsec \n \n",P,Q,QUEUESIZE,minWaitingTime);
-  // printf("\nFor P=%d, and Q=%d ,QUEUESIZE=%d the min waiting-time is : %f usec \n",P,Q,QUEUESIZE,((float)minWaitingTime )/1000);
-  // printf("For P=%d, and Q=%d ,QUEUESIZE=%d the max waiting-time is : %ld usec  \n",P,Q,QUEUESIZE,maxWaitingTime);
+
   printf("For P=%d, and Q=%d ,QUEUESIZE=%d the mean waiting-time is : %lf usec \n \n",P,Q,QUEUESIZE,meanWaitingTime);
 
 
-  //open the files that store mean , min and max waiting time of all executions
+  //open the files that store mean waiting time and the file when we get the programms output.
   dataFileMean=fopen("dataΜΕΑΝ.csv","a");
-  // dataFileMin=fopen("dataMIN.csv","a");
-  // dataFileMax=fopen("dataMAX.csv","a");
   textFile=fopen("consolePrints.txt","a");
 
-  //printing to files the mean , min and max waiting time of the executions
-  fprintf(dataFileMean,"%d,%d,%lf\n",P,Q,meanWaitingTime);
-  // fprintf(dataFileMin,"%d,%d,%lf\n",P,Q,((float)minWaitingTime )/1000);
-  // fprintf(dataFileMax,"%d,%d,%ld\n",P,Q,maxWaitingTime);
+  //printing to files the mean waiting time of the executions
+  fprintf(dataFileMean,"%d,%d,%lf\n",QUEUESIZE,Q,meanWaitingTime);
+
 
 
   fprintf(textFile,"\nFor P=%d, and Q=%d ,QUEUESIZE=%d the mean waiting-time is : %lf usec \n ",P,Q,QUEUESIZE,meanWaitingTime);
-  // fprintf(textFile,"For P=%d, and Q=%d ,QUEUESIZE=%d the min waiting-time is : %f usec \n ",P,Q,QUEUESIZE,((float)minWaitingTime )/1000);
-  // fprintf(textFile,"For P=%d, and Q=%d ,QUEUESIZE=%d the max waiting-time is : %ld usec \n \n",P,Q,QUEUESIZE,maxWaitingTime);
 
-
+  //Closing the files previously opened
   fclose(inQueueWaitingTimes);
   fclose(producerAssignDelays);
   fclose(actualPeriods);
+  fclose(errorFile);
   fprintf(textFile,"FunctionsCounter: %ld \n ",functionsCounter);
+
+  //free memory alocated in the heap
+  free(startInQueueWaitTimes);
+  free(startInQueueWaitTimes2);
 
   return 0;
 }
@@ -316,10 +329,14 @@ switch (user_choice) {
 //producers' threads function
 void *producer (void * t)
 {
+  //Declaration of auxilary time structs for calculating the producer statistics.
   struct timeval assignTimestamp;
   struct timeval previousAssignTimestamp;
   unsigned int actualPeriod;
-  int drift;
+
+
+  int currentPeriodDeclination=0;
+
 
   Timer * timer; //pointer to a queue struct item
   // // int argIndex, funcIndex;
@@ -329,21 +346,16 @@ void *producer (void * t)
   unsigned int initialPeriod=(timer->Period)*1e3;
   int fixedPeriod= initialPeriod; // Period is in milliseconds
                                   // initialPeriod and fixedPeriod is in microseconds
+
   // Sleep untill the wanted time moment (d/m/y h:min:sec)
   if(timer->StartDelay){
-    // struct timeval tv;
-    // time_t nowtime;
-    // struct tm *nowtm;
+
     sleep(timer->StartDelay);
-    // gettimeofday(&tv, NULL);
-    // nowtime = tv.tv_sec;
-    // nowtm = localtime(&nowtime);
-    //printf("The time now is : %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
+
     printf("A timer is starting now as scheduled, with the respect to its startDelay!\n");
-    (timer-> StartFcn)(NULL);
   }
 
-  //producers' loop
+  //producers' loop, equal to
   while (executions)
   {
     pthread_mutex_lock ((timer-> Q)->mut);
@@ -356,37 +368,31 @@ void *producer (void * t)
       pthread_cond_wait ((timer-> Q)->notFull, (timer-> Q)->mut);
 
     }
-    /*
-    // // Declaring the workFuction that is going to be added in the queue.
-    // struct workFunction  func;
-    //
-    // //getting the workFuctions' function and argument randomly.
-    // argIndex=rand() % N_OF_ARGS;
-    // funcIndex=rand() % N_OF_FUNCTIONS;
-    //
-    //
-    // func.work = functions[funcIndex];
-    // func.arg = (void *) arguments[argIndex];
-    */
-    //Get the time the function is assigned.
+
+    //Get the time the function is assigned in the queue.
     gettimeofday(&assignTimestamp,NULL);
     //the function that adds a work function in the queue
     queueAdd ((timer-> Q), *(timer-> TimerFcn));
+    //unlock the mutex and signaling the consumers that queue is not empty
     pthread_mutex_unlock ((timer-> Q)->mut);
     pthread_cond_signal ((timer-> Q)->notEmpty);
+
+    //total executions of timer- producer assgments is decreased by one
     executions--;
 
-
+    //For the 2nd assigment of producer and beyond, we calcute period and period dellay.
     if(executions< (timer-> TasksToExecute -1)){
 
       actualPeriod= (assignTimestamp.tv_sec*1e6 -previousAssignTimestamp.tv_sec*1e6);
       actualPeriod+= (assignTimestamp.tv_usec-previousAssignTimestamp.tv_usec);
-      drift= actualPeriod- initialPeriod;
+      currentPeriodDeclination= actualPeriod- initialPeriod;
 
-      fixedPeriod= (fixedPeriod - drift)> 0 ?fixedPeriod - drift :fixedPeriod   ;
-      if(DEBUG)printf("drift is : %d\n",drift);
+      fixedPeriod= (fixedPeriod - currentPeriodDeclination)> 0 ?fixedPeriod - currentPeriodDeclination :fixedPeriod   ;
+      if(DEBUG)printf("currentPeriodDeclination is : %d\n",currentPeriodDeclination);
       if(DEBUG)printf("fixedPeriod is : %d\n",fixedPeriod);
-      fprintf(producerAssignDelays,"%f\n ",(float)(drift/1e6));
+
+      //Print the current Period (assign) dellay and the actual period vallue, to the proper files in seconds
+      fprintf(producerAssignDelays,"%f\n ",(float)(currentPeriodDeclination/1e6));
       fprintf(actualPeriods,"%f\n ",(float)(actualPeriod/1e6));
     }
     previousAssignTimestamp=assignTimestamp;
@@ -396,21 +402,9 @@ void *producer (void * t)
     if(!executions)
       break;
     usleep((fixedPeriod)); //fixedPeriod is in microseconds
-/*
-    // //Check if we are in the last rep of producer
-    // if(executions< LOOP-1){
-    //   pthread_mutex_unlock ((timer-> Q)->mut); //unlocking
-    //   pthread_cond_signal ((timer-> Q)->notEmpty); //signal in case cons thread is blocked
-    // }
-    // If we are in the last repetion of a producer in the loop, we update the terminationStatus value.
-    // If terminationStatus variable gets value equal to P (producers' number), means that all producers finished
-    // adding functions in the queue.
-    // else{
-      // terminationStatus++; //updating terminationStatus
 
-    // }
-  */
   }
+  //if a producer finished assigns functions in queue, it indicates it with increase of terminationStatus variavle.
   terminationStatus++;
   //The bellow false signing is dor avoid race conditions
   pthread_cond_signal ((timer-> Q)->notEmpty);
@@ -426,13 +420,11 @@ void *consumer (void *q)
   while (1) {
 
     pthread_mutex_lock (fifo->mut);
-    if(DEBUG)
-      printf("I am in consumer.\n");
+
     /*When all the producers finished adding new workFunction items in the queue (terminationStatus==P)
      and the fifo queue is empty , the termination condition is met and the
      consumer Threads return.*/
     while (fifo->empty ) {
-      //printf ("consumer: queue EMPTY.\n");
 
       //Termination condition,terminationStatus ==P means that all producers finished adding workFuncs in the queue.
       if(terminationStatus ==P){
@@ -463,13 +455,19 @@ void *consumer (void *q)
 }
 
 //Queue Initialization Function
-queue *queueInit (void)
+queue *queueInit (int capacity)
 {
   queue *q;
 
   q = (queue *)malloc (sizeof (queue));
   if (q == NULL) return (NULL);
 
+  //Allocating size for the queue buffer.
+  q->buf=(struct workFunction *) malloc (sizeof(struct workFunction)*capacity);
+  if(!(q->buf)){
+    printf("Couldn't Allocate Memory!\n" );
+    exit(1);
+  }
   q->empty = 1;
   q->full = 0;
   q->head = 0;
@@ -508,6 +506,7 @@ void queueAdd (queue *q, struct workFunction in)
   clock_gettime(CLOCK_MONOTONIC, &startInQueueWaitTimes2[q->tail]);
 
   q->tail++;
+  if(DEBUG)printf("QUEUSIZE inside queueADD= %d \n ",QUEUESIZE);
   if (q->tail == QUEUESIZE)
     q->tail = 0;
   if (q->tail == q->head)
@@ -522,7 +521,7 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
 
 
   ////TIME CALCULATIONS/////
-  //variable to store the waiting time of the current workFunc
+  //variables to store the waiting time of the current workFunc
   long currWaitingTime =0 ;
   long currWaitingTime2=0 ;
 
@@ -548,31 +547,20 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
   currWaitingTime2=(endTime2.tv_sec-(startInQueueWaitTimes2[currHead ]).tv_sec) * 1e9  ;
   currWaitingTime2+=(endTime2.tv_nsec-(startInQueueWaitTimes2[currHead ]).tv_nsec  );
 
-
-  // //Check if the current waiting time is the min waiting time.
-  // if(currWaitingTime2 < minWaitingTime){
-  //   minWaitingTime=currWaitingTime2;
-  //
-  // }
-  //
-  // //Check if the current waiting time is the max waiting time.
-  // if(currWaitingTime > maxWaitingTime){
-  //   maxWaitingTime=currWaitingTime;
-  //
-  // }
-
+  //Printing the waiting time of a function in the queue to the proper file, is useconds(microseconds)
   if(currWaitingTime>=5)
     fprintf(inQueueWaitingTimes,"%ld\n ",currWaitingTime);
   else
     //for small waiting times we use nanoseconds precision
     fprintf(inQueueWaitingTimes, "%lf\n", ((float)currWaitingTime2)/1000);
 
-  //updating global variables that are used for calculating the mean waiting time.
+  //updating global variable that is used for calculating the mean waiting time.
   ++functionsCounter;
 
 
   //Updating Head Value for the next consumer thread,before unlocking the mutex
   q->head++;
+  if(DEBUG)printf("QUEUSIZE inside queueEXEC= %d \n ",QUEUESIZE);
   if (q->head == QUEUESIZE)
     q->head = 0;
   if (q->head == q->tail)
@@ -589,7 +577,7 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
   pthread_mutex_unlock (q->mut);
   pthread_cond_signal (q->notFull);
 
-  /*Executing the workFunction function after unlocking the mutex , leads to parallel
+  /*Executing the workFunction function after unlocking the mutex ,this leads to parallel
   execution of workFunction functions*/
   (workFunc.work)((workFunc.arg));
 
@@ -607,8 +595,10 @@ Timer * timerInit (  unsigned int t_Period,
   Timer *t;
 
   t = (Timer *)malloc (sizeof (Timer));
-  if (t == NULL) return (NULL);
-  // t -> Q = (queue *)malloc (sizeof (queue));
+  if (!t){
+    printf("Failed to allocate memory for the timer!");
+    return (NULL);
+  }
 
   t->Period = t_Period;
   t->TasksToExecute = t_TasksToExecute;
@@ -626,20 +616,13 @@ Timer * timerInit (  unsigned int t_Period,
 }
 
 void timerDelete(Timer * t){
-  // free( t -> TimerFcn );
-  // free( t -> StartFcn );
-  // free( t -> StopFcn );
-  // free( t -> ErrorFcn );
-  // free( t -> userData );
+
+  //free the timer pointer
   free( t );
 }
 
 void start(Timer * t){
-  if(DEBUG){
-    printf("I am inside start(t) , bellow the function:\n");
-    (t->TimerFcn->work)((t->TimerFcn->arg));
-    printf("DEBUG inside start() ends.\n");
-  }
+
   (t-> StartFcn)(NULL);
   pthread_t t_producer;
   pthread_create (&(t->producer_tid) , NULL, producer, t);
@@ -648,68 +631,73 @@ void start(Timer * t){
 
 void startat(Timer * t,int y,int m,int d,int h,int min,int sec){
 
-  if(DEBUG){
-    printf("I am inside startat(t,) , bellow the function:\n");
-    (t->TimerFcn->work)((t->TimerFcn->arg));
-    printf("DEBUG inside start() ends.\n");
-  }
 
-  int yearDifferenceInSecs;
-  int monthsDifferenceInSecs;
-  int daysDifferenceInSecs;
-  int hoursDifferenceInSecs;
-  int minutesDifferenceInSecs;
-  int secondsDifference;
+  int totalDelayInSeconds=0;
 
   struct timeval tv;
   time_t nowtime;
   struct tm *nowtm;
-  // char tmbuf[64], buf[64];
 
- gettimeofday(&tv, NULL);
- nowtime = tv.tv_sec;
- nowtm = localtime(&nowtime);
+  //get the current timeStamp
+  gettimeofday(&tv, NULL);
+  nowtime = tv.tv_sec;
+  nowtm = localtime(&nowtime);
 
- printf("The time now is: %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
- printf("A timer is set to execute at: %d-%02d-%02d %02d:%02d:%02d\n", y, m, d, h, min, sec);
+  //Print informational message about the timer beggining in a certain time and date.
+  printf("The time now is: %d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec);
+  printf("A timer is set to execute at: %d-%02d-%02d %02d:%02d:%02d\n", y, m, d, h, min, sec);
 
- //Calculating the difference between two time moments (now and d/m/y h:min:sec) into seconds, in order to call the sleep() function later
- yearDifferenceInSecs = (y- (nowtm->tm_year+ 1900)) * 31556926 ;// There are 31556926 seconds in a year
- monthsDifferenceInSecs = (m- (nowtm->tm_mon+1)) * 2592000 ;// There are 2592000 seconds in a 30-day month
- daysDifferenceInSecs = (d- nowtm->tm_mday) * 86400    ;// There are 86400 seconds in a day
- hoursDifferenceInSecs= (h- nowtm->tm_hour) * 3600     ;// There are 3600 seconds in an hour
- minutesDifferenceInSecs= (min- nowtm->tm_min) * 60    ;// There are 60 seconds in an minute
- secondsDifference= (sec- nowtm->tm_sec);
+  //Initializing a struct tm with the timestamp, at which the timer will be executed.
+  struct tm * timerExecStart = (struct tm *)malloc(sizeof(struct tm));
+  timerExecStart->tm_year = y;
+  timerExecStart->tm_mon = m;
+  timerExecStart->tm_mday = d;
+  timerExecStart->tm_hour = h;
+  timerExecStart->tm_min = min;
+  timerExecStart->tm_sec = sec;
 
- //The total time difference between the two time moments in seconds
- int totalDifferenceInSecs= yearDifferenceInSecs+ monthsDifferenceInSecs+daysDifferenceInSecs+hoursDifferenceInSecs+
- minutesDifferenceInSecs+secondsDifference;
+  //Getting the time difference in seconds between the current moment and the moment the timer we want to start.
+  totalDelayInSeconds=(int) difftime(mktime(nowtm), mktime(timerExecStart));
 
+  //Initialize the timer's initial dellay (StartDelay variable) to the proper value.
+  if(totalDelayInSeconds>0)
+    t-> StartDelay = totalDelayInSeconds; //startDelay is in seconds
 
+  pthread_t t_producer;
 
- t-> StartDelay = totalDifferenceInSecs; //startDelay is in seconds
- pthread_t t_producer;
- pthread_create (&(t->producer_tid) , NULL, producer, t);
- printf("i created the prod trhead!\n");
+  //Spawining the producer threead corresponding to timer
+  pthread_create (&(t->producer_tid) , NULL, producer, t);
+  if(DEBUG)printf("i created the prod trhead!\n");
 }
 
 
 
 
 void * def_StartFcn(void * arg){
-  printf("A timer has started.\n");
+  printf("A timer is set for execution.\n");
 }
 
-//NA DW
+
 void * def_StopFcn(void * arg){
   printf("A timer finished assigning new functions in the queue.\n");
 }
 
 void * def_ErrorFcn(void * arg){
   printf("The queue is full, no function can be assigned at the moment. \n");
+
+  struct timeval tv;
+  time_t nowtime;
+  struct tm *nowtm;
+  gettimeofday(&tv, NULL);
+  nowtime = tv.tv_sec;
+  nowtm = localtime(&nowtime);
+
+  //we print the error status in the error file and the time the error (full queue) reported.
+  fprintf(errorFile, "ERROR: QUEUE IS FULL, time is :%d-%02d-%02d %02d:%02d:%02d\n", nowtm->tm_year + 1900, nowtm->tm_mon + 1, nowtm->tm_mday, nowtm->tm_hour, nowtm->tm_min, nowtm->tm_sec );
+
 }
 
-
+//Definition of the function that prints the user menu.
 int printExecutionMenu(){
   int choice;
 
@@ -719,11 +707,12 @@ int printExecutionMenu(){
   printf("3. For one timer with period of 0.01 sec type '3' and press Enter.\n" );
   printf("4. For running and the three above timers simultaneously type '4' and press Enter.\n" );
 
-  //Check if someone inputs an invalid data type as scanf input.
+  //Check if someone inputs an invalid data type as scanf input .
   if(scanf("%d", &choice)!= 1) {
     scanf("%*s");
     printf("Please enter one valid option. \n" );
     choice=printExecutionMenu();
   };
+  //return the user choice.
   return choice;
 }

@@ -26,7 +26,7 @@ void * calc5thPower(void * arg){
     power=power*number;
 
 
-  printf("The arg number is %d and its power is %ld ! \n", number,power);
+  // printf("The arg number is %d and its power is %ld ! \n", number,power);
 
 }
 
@@ -38,7 +38,7 @@ void * calcCos(void * arg){
     myCos=cos((float)(  (i*number* PI) / 180) );
 
 
-  printf("The arg number is %d and its cosine is %f ! \n", number,myCos);
+  // printf("The arg number is %d and its cosine is %f ! \n", number,myCos);
   // usleep(500);
 }
 
@@ -48,7 +48,7 @@ void * calcSin(void * arg){
   number= (int) arg;
   for(int i=1;i<=FUNC_REPS;i++)
     mySin=sin((float)(  (i* number* PI) / 180) );
-  printf("The arg number is %d and its sine is %f ! \n", number,mySin);
+  // printf("The arg number is %d and its sine is %f ! \n", number,mySin);
   // usleep(500);
 }
 
@@ -59,7 +59,7 @@ void * calcCosSumSin(void * arg){
   number= (int) arg;
   mySin=sin((float)(  (number* PI) / 180)  );
   myCos=cos((float)(  (number* PI) / 180)  );
-  printf("The arg number is %d its cosine is %f, its sine is %f and their sum is %f ! \n", number,myCos,mySin, myCos+mySin);
+  // printf("The arg number is %d its cosine is %f, its sine is %f and their sum is %f ! \n", number,myCos,mySin, myCos+mySin);
   // usleep(500);
 }
 
@@ -68,6 +68,6 @@ void * calcSqRoot(void * arg){
   float myRoot;
   number= (int) arg;
   myRoot= sqrt((float)number);
-  printf("The arg number is %d and its square root is %f ! \n", number,myRoot);
+  // printf("The arg number is %d and its square root is %f ! \n", number,myRoot);
   // usleep(500);
 }
