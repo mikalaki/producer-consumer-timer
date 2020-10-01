@@ -144,7 +144,7 @@ int main (int argc, char* argv[])
 
   /*Check if user doesn't pass size of queue and number of consumers threads as
   command line arguments to main to avoid segmentation fault, if that happens*/
-  if(!argc || argc ==2 || argc ==1 ){
+  if(!argc || argc ==2 || argc ==1 ){ //argv[0] is the executable
     QUEUESIZE = 4;
     Q = 4;
     printf("Queue size and number of consumers aren't inserted as expected, both values are set by default to 4. \n");

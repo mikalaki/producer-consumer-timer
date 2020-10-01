@@ -74,12 +74,12 @@ for cases =[ 1 2 3 4 ]
       actualPeriods{cases}=importdata(filename3);
       
       
-      %Filter Data with moving average filter,       
-      FilteredProducerPeriodDeclinations{cases} = MA_filter(producerPeriodDeclinations{cases}, ...
-      floor(length(producerPeriodDeclinations{cases})/15));
-  
-      FilteredActualPeriods{cases} = MA_filter(actualPeriods{cases}, ...
-      floor(length(producerPeriodDeclinations{cases})/15));
+%       %Filter Data with moving average filter,       
+%       FilteredProducerPeriodDeclinations{cases} = MA_filter(producerPeriodDeclinations{cases}, ...
+%       floor(length(producerPeriodDeclinations{cases})/15));
+%   
+%       FilteredActualPeriods{cases} = MA_filter(actualPeriods{cases}, ...
+%       floor(length(producerPeriodDeclinations{cases})/15));
         
       %Calculating Desired Statistics
       meanActualPeriods(cases)= mean(actualPeriods{cases});
@@ -113,95 +113,95 @@ for cases =[ 1 2 3 4 ]
       
 end
 
-% %% Graphs for period Declination
-% % %Period Declination plot for experiment 4.
-% figure();
-% bar(producerPeriodDeclinations{4},'BarWidth', 1);
-% %ylim([-1.5e-4 1.5e-4])
-% hold on;
-% line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4),meanPeriodDeclinations(4)],'Color','red','LineWidth',1);
-% hold on;
-% line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4)-stdPeriodDeclinations(4), ...
-%     meanPeriodDeclinations(4)-stdPeriodDeclinations(4)],'Color','yellow','LineWidth',2);
-% hold on;
-% line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4)+stdPeriodDeclinations(4), ...
-%     meanPeriodDeclinations(4)+stdPeriodDeclinations(4)],'Color','yellow','LineWidth',2);
-% hold on;
-% 
-% 
-% title("Period Declinations (T=1 & T=0.1 & T=0.01 sec timers)");
-% xlabel("n. of Period");
-% ylabel("Period declination (seconds)");
-% legend("Period declinations","mean=6.9*10^-^1^0 sec", "mean-std=-9.7*10^-^5 s","mean+std=9.7*10^-^5 s");
-% 
-% hold off;
-% 
-% % %Period Declination plot for experiment 3.
-% figure();
-% bar(producerPeriodDeclinations{3},'BarWidth', 1);
-% ylim([-7e-5 7e-5])
-% hold on;
-% line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3),meanPeriodDeclinations(3)],'Color','red','LineWidth',1);
-% hold on;
-% line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3)-stdPeriodDeclinations(3), ...
-%     meanPeriodDeclinations(3)-stdPeriodDeclinations(3)],'Color','yellow','LineWidth',2);
-% hold on;
-% line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3)+stdPeriodDeclinations(3), ...
-%     meanPeriodDeclinations(3)+stdPeriodDeclinations(3)],'Color','yellow','LineWidth',2);
-% hold on;
-% 
-% 
-% title("Period Declinations (T=0.01 seconds timer)");
-% xlabel("n. of Period");
-% ylabel("Period declination (seconds)");
-% legend("Period declinations","mean=4.8*10^-^1^0 sec", "mean-std=-4.75*10^-^5 s","mean+std=4.75*10^-^5 s");
-% 
-% hold off;
-% 
-% % %Period Declination plot for experiment 2.
-% figure();
-% bar(producerPeriodDeclinations{2},'BarWidth', 1);
-% ylim([-3e-5 3e-5])
-% hold on;
-% line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2),meanPeriodDeclinations(2)],'Color','red','LineWidth',1);
-% hold on;
-% line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2)-stdPeriodDeclinations(2), ...
-%     meanPeriodDeclinations(2)-stdPeriodDeclinations(2)],'Color','yellow','LineWidth',2);
-% hold on;
-% line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2)+stdPeriodDeclinations(2), ...
-%     meanPeriodDeclinations(2)+stdPeriodDeclinations(2)],'Color','yellow','LineWidth',2);
-% hold on;
-% 
-% 
-% title("Period Declinations (T=0.1 seconds timer)");
-% xlabel("n. of Period");
-% ylabel("Period declination (seconds)");
-% legend("Period declinations","mean=3*10^-^9 sec", "mean-std=-1.16*10^-^5 s","mean+std=1.16*10^-^5 s");
-% 
-% hold off;
-% 
-% 
-% % %Period Declination plot for experiment 1.
-% figure();
-% bar(producerPeriodDeclinations{1},'BarWidth', 1);
-% ylim([-5e-5 5e-5])
-% hold on;
-% line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(1),meanPeriodDeclinations(1)],'Color','red','LineWidth',1);
-% hold on;
-% line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(1)-stdPeriodDeclinations(1), ...
-%     meanPeriodDeclinations(1)-stdPeriodDeclinations(1)],'Color','yellow','LineWidth',2);
-% hold on;
-% line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(2)+stdPeriodDeclinations(1), ...
-%     meanPeriodDeclinations(1)+stdPeriodDeclinations(1)],'Color','yellow','LineWidth',2);
-% hold on;
-% 
-% 
-% title("Period Declinations (T=1 second timer)");
-% xlabel("n. of Period");
-% ylabel("Period declination (seconds)");
-% legend("Period declinations","mean=2.9*10^-^8 sec", "mean-std=-2.9*10^-^5 s","mean+std=2.9*10^-^5 s");
-% 
-% hold off;
+%% Graphs for period Declination
+% %Period Declination plot for experiment 4.
+figure();
+bar(producerPeriodDeclinations{4},'BarWidth', 1);
+ylim([-1.5e-4 1.5e-4])
+hold on;
+line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4),meanPeriodDeclinations(4)],'Color','red','LineWidth',1);
+hold on;
+line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4)-stdPeriodDeclinations(4), ...
+    meanPeriodDeclinations(4)-stdPeriodDeclinations(4)],'Color','yellow','LineWidth',2);
+hold on;
+line([0,length(producerPeriodDeclinations{4})],[meanPeriodDeclinations(4)+stdPeriodDeclinations(4), ...
+    meanPeriodDeclinations(4)+stdPeriodDeclinations(4)],'Color','yellow','LineWidth',2);
+hold on;
+
+
+title("Period Declinations (T=1 & T=0.1 & T=0.01 sec timers)");
+xlabel("n. of Period");
+ylabel("Period declination (seconds)");
+legend("Period declinations","mean=6.9*10^-^1^0 sec", "mean-std=-9.7*10^-^5 s","mean+std=9.7*10^-^5 s");
+
+hold off;
+
+% %Period Declination plot for experiment 3.
+figure();
+bar(producerPeriodDeclinations{3},'BarWidth', 1);
+ylim([-7e-5 7e-5])
+hold on;
+line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3),meanPeriodDeclinations(3)],'Color','red','LineWidth',1);
+hold on;
+line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3)-stdPeriodDeclinations(3), ...
+    meanPeriodDeclinations(3)-stdPeriodDeclinations(3)],'Color','yellow','LineWidth',2);
+hold on;
+line([0,length(producerPeriodDeclinations{3})],[meanPeriodDeclinations(3)+stdPeriodDeclinations(3), ...
+    meanPeriodDeclinations(3)+stdPeriodDeclinations(3)],'Color','yellow','LineWidth',2);
+hold on;
+
+
+title("Period Declinations (T=0.01 seconds timer)");
+xlabel("n. of Period");
+ylabel("Period declination (seconds)");
+legend("Period declinations","mean=4.8*10^-^1^0 sec", "mean-std=-4.75*10^-^5 s","mean+std=4.75*10^-^5 s");
+
+hold off;
+
+% %Period Declination plot for experiment 2.
+figure();
+bar(producerPeriodDeclinations{2},'BarWidth', 1);
+ylim([-3e-5 3e-5])
+hold on;
+line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2),meanPeriodDeclinations(2)],'Color','red','LineWidth',1);
+hold on;
+line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2)-stdPeriodDeclinations(2), ...
+    meanPeriodDeclinations(2)-stdPeriodDeclinations(2)],'Color','yellow','LineWidth',2);
+hold on;
+line([0,length(producerPeriodDeclinations{2})],[meanPeriodDeclinations(2)+stdPeriodDeclinations(2), ...
+    meanPeriodDeclinations(2)+stdPeriodDeclinations(2)],'Color','yellow','LineWidth',2);
+hold on;
+
+
+title("Period Declinations (T=0.1 seconds timer)");
+xlabel("n. of Period");
+ylabel("Period declination (seconds)");
+legend("Period declinations","mean=3*10^-^9 sec", "mean-std=-1.16*10^-^5 s","mean+std=1.16*10^-^5 s");
+
+hold off;
+
+
+% %Period Declination plot for experiment 1.
+figure();
+bar(producerPeriodDeclinations{1},'BarWidth', 1);
+ylim([-5e-5 5e-5])
+hold on;
+line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(1),meanPeriodDeclinations(1)],'Color','red','LineWidth',1);
+hold on;
+line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(1)-stdPeriodDeclinations(1), ...
+    meanPeriodDeclinations(1)-stdPeriodDeclinations(1)],'Color','yellow','LineWidth',2);
+hold on;
+line([0,length(producerPeriodDeclinations{1})],[meanPeriodDeclinations(2)+stdPeriodDeclinations(1), ...
+    meanPeriodDeclinations(1)+stdPeriodDeclinations(1)],'Color','yellow','LineWidth',2);
+hold on;
+
+
+title("Period Declinations (T=1 second timer)");
+xlabel("n. of Period");
+ylabel("Period declination (seconds)");
+legend("Period declinations","mean=2.9*10^-^8 sec", "mean-std=-2.9*10^-^5 s","mean+std=2.9*10^-^5 s");
+
+hold off;
 
 
 %% Graphs for in-Queue Waiting times 
