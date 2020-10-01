@@ -19,7 +19,7 @@ The **cross compiler** used for this project is given in this [link](https://sou
 1.Choose the right compiler for our model and follow the proper quide [here](https://github.com/abhiTronix/raspberry-pi-cross-compilers/wiki)<br>
 2.Compile our source code with the command bellow :<br>
 ` arm-linux-gnueabihf-gcc timer.c myFunctions.c -pthread -o program.out -lm -O3 `<br>
-3. Transfer our executable to our embedded system, possible with `scp` command.<br>
+3. Transfer our executable to our embedded system, possible with `scp` command.<br> <br>
 Then it is possible to execute our programm inside our embedded system, with the command
 bellow, in the directory where the executable file has been transfered:<br>
 `./program.out s q` , where **s is the common queue size** you want to have and **q the number of consumers**,<br>
