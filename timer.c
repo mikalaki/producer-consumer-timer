@@ -27,15 +27,15 @@
 // #define QUEUESIZE 1000
 
 int P=1; // number of producer Threads, set it by default to 1, value will be updated in the program
-int Q=1; // number of consumer Threads, set it by default to 1, value will be updated in the program
-int QUEUESIZE=10; //work Functions queue capacity, set it by default to 10, value will be updated in the program
+int Q=4; // number of consumer Threads, set it by default to 1, value will be updated in the program
+int QUEUESIZE=4; //work Functions queue capacity, set it by default to 10, value will be updated in the program
 
 
 //pointers to auxilary files, for storing wanted data.
 FILE * inQueueWaitingTimes;
 FILE * producerAssignDelays;
 FILE * actualPeriods;
-//FILE * executionTime;
+// FILE * executionTime;
 FILE * errorFile;
 
 //Given struct for defining the workFuction our consumer threads will execute.
@@ -89,6 +89,7 @@ typedef struct {
 //timer methods (functions) declarations, based on given specification
 Timer * timerInit (unsigned int t_Period,unsigned int t_TasksToExecute,
   unsigned int t_StartDelay,struct workFunction * t_TimerFcn);
+
 void timerDelete(Timer * t);
 
 void * def_StartFcn(void * arg);
@@ -141,9 +142,19 @@ int main (int argc, char* argv[])
   int nOftimers=0;
   int timerIndex=0;
 
-  //getting queue capacity and number of consumer threads as command arguments
-  QUEUESIZE=atoi(argv[1]);
-  Q=atoi(argv[2]);
+  /*Check if user doesn't pass size of queue and number of consumers threads as
+  command line arguments to main to avoid segmentation fault, if that happens*/
+  if(!argc || argc ==2 || argc ==1 ){
+    QUEUESIZE = 4;
+    Q = 4;
+    printf("Queue size and number of consumers aren't inserted as expected, both values are set by default to 4. \n");
+  }
+  else{
+
+    //getting queue capacity and number of consumer threads as command arguments
+    QUEUESIZE = atoi(argv[1]);
+    Q = atoi(argv[2]);
+  }
 
   //printf("TIMER PROGRAM HAS STARTED!!\n");
 
@@ -211,7 +222,12 @@ int main (int argc, char* argv[])
   //In this file an error message is printed if the queue gets full.
   char filename4[sizeof "errorFileQUEUESIZEXX_QXXX_caseX.txt"];
   //Giving to the file the proper name
-  sprintf(filename4, "errorFileQUEUESIZE%02d_Q%03d.txt", QUEUESIZE,Q,user_choice);
+  sprintf(filename4, "errorFileQUEUESIZE%02d_Q%03d_case%d.txt", QUEUESIZE,Q,user_choice);
+
+  // //In this file an error message is printed the average execution timer of TimerFcn.
+  // char filename5[sizeof "WorkFcnExecTimesPi.csv"];
+  // //Giving to the file the proper name
+  // sprintf(filename5, "WorkFcnExecTimesPi.csv");
 
 
   //Open the auxilary files, in order to store the wanted data
@@ -219,6 +235,7 @@ int main (int argc, char* argv[])
   producerAssignDelays = fopen(filename2,"a");
   actualPeriods = fopen(filename3,"a");
   errorFile = fopen(filename4,"a");
+  // executionTime= fopen(filename5,"a");
 
 
   queue *fifo; //queue declaration
@@ -253,7 +270,7 @@ int main (int argc, char* argv[])
 
   //Setting the timer parameters
   unsigned int t_periods[3]={1e3,1e2,10};//timer periods are in milliseconds
-  unsigned int t_TasksToExecute[3]={12,1200,12000};
+  unsigned int t_TasksToExecute[3]={3600,36000,360000};
   unsigned int t_StartDelay=0;// default initial timer's dellay is zero
   int argIndex, funcIndex; //variables that indicate the function and the argument
 
@@ -318,6 +335,7 @@ int main (int argc, char* argv[])
   fclose(producerAssignDelays);
   fclose(actualPeriods);
   fclose(errorFile);
+  // fclose(executionTime);
   fprintf(textFile,"FunctionsCounter: %ld \n ",functionsCounter);
 
   //free memory alocated in the heap
@@ -525,6 +543,7 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
   //variables to store the waiting time of the current workFunc
   long currWaitingTime =0 ;
   long currWaitingTime2=0 ;
+  // long execTime=0;
 
   //variable to get the time that workFunction is getting out of the queue( before execution)
   struct timeval endTime;
@@ -578,12 +597,22 @@ void queueExec ( queue *q,struct workFunction  workFunc,int currHead)
   pthread_mutex_unlock (q->mut);
   pthread_cond_signal (q->notFull);
 
+  // struct timeval executionStartTime;
+  // struct timeval executionEndTime;
+
   /*Executing the workFunction function after unlocking the mutex ,this leads to parallel
   execution of workFunction functions*/
+
+  // gettimeofday(&executionStartTime,NULL);
   (workFunc.work)((workFunc.arg));
+  // gettimeofday(&executionEndTime,NULL);
+
+  //Calculating workFcnExecution Times in microseconds.
+  // execTime= (executionEndTime.tv_sec*1e6 -executionStartTime.tv_sec*1e6);
+  // execTime+= (executionEndTime.tv_usec-executionEndTime.tv_usec);
+  // fprintf(executionTime,"%ld\n ",currWaitingTime);
 
   return;
-
 }
 
 
@@ -723,6 +752,7 @@ int printExecutionMenu(){
 
   //Check if someone inputs an invalid data type as scanf input .
   if(scanf("%d", &choice)!= 1) {
+    //empty the scanf variable.
     scanf("%*s");
     printf("Please enter one valid option. \n" );
     choice=printExecutionMenu();

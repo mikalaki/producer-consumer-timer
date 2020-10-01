@@ -1,0 +1,7 @@
+
+For P=3, and Q=4 ,QUEUESIZE=4 the mean waiting-time is : 34.197540 usec 
+ FunctionsCounter: 399600 
+ 
+For P=1, and Q=4 ,QUEUESIZE=4 the mean waiting-time is : 30.591553 usec 
+ FunctionsCounter: 360000 
+ 

@@ -1,0 +1,11 @@
+
+time ./program.out 4 4
+
+PROGRAM EXECUTION FINISHED. 
+For P=1, and Q=4 ,QUEUESIZE=4 the mean waiting-time is : 30.591553 usec 
+ 
+
+real	60m10.482s
+user	0m0.002s
+sys	0m30.351s
+

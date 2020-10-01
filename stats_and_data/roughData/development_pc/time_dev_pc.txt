@@ -1,0 +1,3 @@
+22.48user 14.04system 49:59.98elapsed 1%CPU (0avgtext+0avgdata 30364maxresident)k
+0inputs+17560outputs (0major+14381minor)pagefaults 0swaps
+

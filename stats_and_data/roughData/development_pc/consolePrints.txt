@@ -1,0 +1,76 @@
+
+For P=3, and Q=1 ,QUEUESIZE=1 the mean waiting-time is : 49.246321 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=2 ,QUEUESIZE=1 the mean waiting-time is : 52.758709 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=4 ,QUEUESIZE=1 the mean waiting-time is : 50.055405 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=8 ,QUEUESIZE=1 the mean waiting-time is : 49.734159 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=10 ,QUEUESIZE=1 the mean waiting-time is : 51.524099 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=1 ,QUEUESIZE=2 the mean waiting-time is : 56.771622 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=2 ,QUEUESIZE=2 the mean waiting-time is : 58.680631 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=4 ,QUEUESIZE=2 the mean waiting-time is : 57.499775 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=8 ,QUEUESIZE=2 the mean waiting-time is : 58.562688 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=10 ,QUEUESIZE=2 the mean waiting-time is : 59.981907 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=1 ,QUEUESIZE=4 the mean waiting-time is : 59.156607 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=2 ,QUEUESIZE=4 the mean waiting-time is : 57.878679 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=4 ,QUEUESIZE=4 the mean waiting-time is : 59.256907 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=8 ,QUEUESIZE=4 the mean waiting-time is : 57.327252 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=10 ,QUEUESIZE=4 the mean waiting-time is : 56.746772 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=1 ,QUEUESIZE=8 the mean waiting-time is : 58.884384 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=2 ,QUEUESIZE=8 the mean waiting-time is : 59.128604 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=4 ,QUEUESIZE=8 the mean waiting-time is : 57.117267 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=8 ,QUEUESIZE=8 the mean waiting-time is : 58.081156 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=10 ,QUEUESIZE=8 the mean waiting-time is : 58.088664 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=1 ,QUEUESIZE=10 the mean waiting-time is : 58.610210 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=2 ,QUEUESIZE=10 the mean waiting-time is : 58.925601 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=4 ,QUEUESIZE=10 the mean waiting-time is : 57.446697 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=8 ,QUEUESIZE=10 the mean waiting-time is : 59.766216 usec 
+ FunctionsCounter: 13320 
+ 
+For P=3, and Q=10 ,QUEUESIZE=10 the mean waiting-time is : 56.685511 usec 
+ FunctionsCounter: 13320 
+ 
