@@ -12,9 +12,9 @@ for instance if you want to have a queue with capacity of 4 and 2 consumers thre
 `./program.out 4 2` <br>
 if queue size and number of consumer threads are not set as expected, both values are set by default to 4. <br>
 
-### Compiling and Execution for a Raspberry Pi with [this OS img](https://www.dropbox.com/s/0sp5a1s6r5ee3kw/ESPX-rasp.tar.gz?dl=1)<br>
+### (Cross-)Compiling and Execution for a Raspberry Pi with [this OS img](https://www.dropbox.com/s/0sp5a1s6r5ee3kw/ESPX-rasp.tar.gz?dl=1)<br>
 In order for be able to execute the programm to a embedded system (for me a raspberry pi 4 model B), <br>
-it has first to be compiled in such a way. This can happen with a **cross-compiler**.<br>
+it has first to be compiled in such a way. This can happen with a **cross compiler**.<br>
 The **cross compiler** used for this project is given in this [link](https://sourceforge.net/projects/raspberry-pi-cross-compilers/files/Raspberry%20Pi%20GCC%20Cross-Compiler%20Toolchains/Stretch/GCC%206.3.0/), and bellow the proccess followed:<br>
 1.Choose the right compiler for our model and follow the proper quide [here](https://github.com/abhiTronix/raspberry-pi-cross-compilers/wiki)<br>
 2.Compile our source code with the command bellow :<br>
