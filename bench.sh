@@ -1,6 +1,6 @@
 #!/bin/bash
 
-#This bash script is used for compiling and benching the prod-cons_multithreading.c programm
+#This bash script is used for compiling and benching the timer.c programm
 
 #compiling
 gcc timer.c myFunctions.c -pthread -o program.out -lm -O3
