@@ -2,7 +2,7 @@
 A C timer using a multithreading producer consumer architecture.
 This repo is about the final assigment on the real-time embedded systems class . <br>
 **The timer's implementation is in the file [timer.c](https://github.com/mikalaki/producer-consumer-timer/blob/master/timer.c)**
-## Compiling (and cross-compoling) and Execution of the Program
+## Compiling (and cross-compiling) and Execution of the Program
 ### Compiling and Execution on a Linux Desktop Machine
 For executing the program on a Linux Deskt Machine you have first to compile it,
 by executing the command bellow inside the project folder :<br>
